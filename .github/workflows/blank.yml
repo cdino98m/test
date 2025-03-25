@@ -1,0 +1,33 @@
+name: Remote Desktop
+on: [workflow_dispatch]
+
+jobs:
+  remote-desktop:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Install Xfce and VNC
+      run: |
+        sudo apt-get update
+        sudo DEBIAN_FRONTEND=noninteractive apt-get install -y xfce4 tightvncserver
+
+    - name: Set VNC Password
+      run: |
+        mkdir -p ~/.vnc
+        echo "${{ secrets.VNC_PASSWORD }}" | vncpasswd -f > ~/.vnc/passwd
+        chmod 600 ~/.vnc/passwd
+
+    - name: Start VNC Server
+      run: |
+        vncserver :1 -geometry 1280x800 -depth 24 -localhost
+        DISPLAY=:1 xfce4-session &
+
+    - name: Expose port with localhost.run
+      run: |
+        echo "Starting SSH tunnel..."
+        ssh -o StrictHostKeyChecking=no -R 80:localhost:5901 nokey@localhost.run > ssh.log 2>&1 &
+        sleep 10
+        echo "=== CONNECTION INFO ==="
+        cat ssh.log | grep -E '[a-z0-9]+\.localhost\.run'
+        echo "======================="
+        echo "VNC URL: $(grep -oE '[a-z0-9]+\.localhost\.run' ssh.log | head -1):80"
+        sleep 3600
