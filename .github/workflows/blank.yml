@@ -24,23 +24,19 @@ jobs:
     - name: Expose port with localhost.run
       run: |
         echo "Starting SSH tunnel..."
-        ssh -o StrictHostKeyChecking=no -R 80:localhost:5901 nokey@localhost.run > ssh.log 2>&1 &
+        ssh -o StrictHostKeyChecking=no -R 5901:localhost:5901 nokey@localhost.run > ssh.log 2>&1 &
         
-        echo "Waiting for tunnel (up to 30 seconds)..."
-        for i in {1..30}; do
-          if grep -q "localhost.run" ssh.log; then
+        echo "Waiting for tunnel (up to 40 seconds)..."
+        for i in {1..40}; do
+          if grep -q "lhr.life" ssh.log; then
             break
           fi
           sleep 1
         done
         
-        echo "=== DEBUG INFO ==="
-        cat ssh.log
-        echo "=================="
-        
         echo "=== CONNECTION INFO ==="
-        URL=$(grep -oP '(?<=at ).+?(?= )' ssh.log | grep localhost.run || echo "no-url-found")
-        echo "VNC Server: $URL:80"
+        TCP_URL=$(grep -oE '[a-z0-9]+\.lhr\.life' ssh.log | head -1)
+        echo "VNC Server: ${TCP_URL}:5901"
         echo "Password: ${{ secrets.VNC_PASSWORD }}"
         echo "======================="
         
