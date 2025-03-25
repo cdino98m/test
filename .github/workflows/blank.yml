@@ -25,9 +25,20 @@ jobs:
       run: |
         echo "Starting SSH tunnel..."
         ssh -o StrictHostKeyChecking=no -R 80:localhost:5901 nokey@localhost.run > ssh.log 2>&1 &
-        sleep 10
+        
+        # Wait for tunnel URL to appear
+        echo "Waiting for tunnel..."
+        for i in {1..20}; do
+          if grep -q "localhost.run" ssh.log; then
+            break
+          fi
+          sleep 1
+        done
+        
         echo "=== CONNECTION INFO ==="
-        cat ssh.log | grep -E '[a-z0-9]+\.localhost\.run'
+        URL=$(grep -oE '[a-z0-9]+\.localhost\.run' ssh.log | grep -v "admin" | head -1)
+        [ -z "$URL" ] && URL="failed-to-get-url"
+        echo "VNC Server: ${URL}:80"
+        echo "Password: [HIDDEN]"
         echo "======================="
-        echo "VNC URL: $(grep -oE '[a-z0-9]+\.localhost\.run' ssh.log | head -1):80"
         sleep 3600
